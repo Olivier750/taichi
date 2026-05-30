@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Tai Chi Zen Matin - Routine Seniors</title>
+    
+    <!-- PWA meta tags -->
+    <link rel="manifest" href="manifest.json">
+    <meta name="theme-color" content="#0b132b">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="TaiChiZen">
+    <link rel="apple-touch-icon" href="images/icon-192.png">
+
+    <!-- Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <!-- Stylesheet -->
+    <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+    <div class="app-container">
+        
+        <!-- ==========================================
+             SCREEN: HOME
+             ========================================== -->
+        <main id="screen-home" class="animate-fade-in">
+            <header>
+                <h1><span class="yin-yang">☯</span> Tai Chi Zen</h1>
+                <p>Routine matinale de renforcement & équilibre</p>
+            </header>
+
+            <!-- Routine selection toggles -->
+            <div class="mode-selector">
+                <button id="btn-mode-seated" class="btn-mode active">🧘 Assis (Chaise)</button>
+                <button id="btn-mode-standing" class="btn-mode">🧍 Debout</button>
+            </div>
+
+            <!-- Workout summary & Start button -->
+            <div class="card">
+                <h3>Votre Séance du Matin</h3>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <span style="font-size:1.15rem; font-weight:500;">Durée Totale estimée :</span>
+                    <span id="lbl-total-time" style="font-size:1.4rem; font-weight:bold; color:var(--accent);">0 min</span>
+                </div>
+                
+                <!-- Excessive duration warnings -->
+                <div id="warning-time-limit" class="warning-banner hidden"></div>
+
+                <button id="btn-start-workout" class="btn btn-primary">Démarrer la Séance</button>
+                <button id="btn-manage-exercises" class="btn btn-secondary">⚙️ Gérer les exercices</button>
+            </div>
+
+            <!-- Settings -->
+            <div class="card">
+                <h3>Options de Séance</h3>
+                
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Pause respiratoire</div>
+                        <div class="setting-desc">Temps entre chaque exercice</div>
+                    </div>
+                    <div class="adjuster">
+                        <button id="btn-rest-minus" class="btn-adjust">-</button>
+                        <span id="lbl-rest-value" class="adjust-val">30s</span>
+                        <button id="btn-rest-plus" class="btn-adjust">+</button>
+                    </div>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Synthèse Vocale</div>
+                        <div class="setting-desc">Annonce parlée des mouvements</div>
+                    </div>
+                    <label class="switch">
+                        <input id="switch-speech" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+
+                <div class="setting-row">
+                    <div>
+                        <div class="setting-label">Sons Zen</div>
+                        <div class="setting-desc">Bols tibétains de transition</div>
+                    </div>
+                    <label class="switch">
+                        <input id="switch-gong" type="checkbox" checked>
+                        <span class="slider"></span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- List review -->
+            <div style="margin-top:20px;">
+                <h2 style="font-size:1.3rem; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">Mouvements prévus</h2>
+                <div id="home-exercise-list">
+                    <!-- Dynamic Summary List -->
+                </div>
+            </div>
+        </main>
+
+        <!-- ==========================================
+             SCREEN: PLAYER
+             ========================================== -->
+        <main id="screen-player" class="hidden player-container animate-fade-in">
+            <header style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button id="btn-player-back" class="btn-icon" title="Quitter">🏠</button>
+                    <div id="player-phase-name" class="phase-badge">EXERCICE 1 / 8</div>
+                    <div style="width:40px;"></div> <!-- balance layout -->
+                </div>
+            </header>
+
+            <div id="player-workout-container" style="width:100%; display:flex; flex-direction:column; align-items:center;">
+                <!-- Countdown circle timer -->
+                <div class="timer-circle-wrap">
+                    <svg class="timer-circle-svg" width="220" height="220">
+                        <circle class="timer-circle-bg" cx="110" cy="110" r="90" />
+                        <circle id="player-circle-progress" class="timer-circle-progress" cx="110" cy="110" r="90" stroke-dasharray="565.48" stroke-dashoffset="0" />
+                    </svg>
+                    <div id="player-timer-value" class="timer-value">1:20</div>
+                </div>
+
+                <!-- Guidance Info -->
+                <div class="player-info-card">
+                    <h2 id="player-exercise-title">Mouvement de Tai Chi</h2>
+                    <p id="player-exercise-desc" class="desc">Description détaillée de la posture et du geste fluide à faire.</p>
+                    <div id="player-exercise-posture" class="posture">Attention posture : Alignement et respiration lente.</div>
+                    <div id="player-next-preview" class="next-preview hidden">Suivant : ...</div>
+                </div>
+
+                <!-- Breathing visualizer guide -->
+                <div class="breathing-guide-wrap">
+                    <div id="breathing-guide" class="breathing-circle">☯</div>
+                    <div id="breathing-txt" class="breathing-txt">Calmer le souffle</div>
+                </div>
+
+                <!-- Workout control buttons -->
+                <div style="display:flex; gap:16px; width:100%; margin-top:20px;">
+                    <button id="btn-player-play" class="btn btn-primary" style="flex:2;">⏸ Pause</button>
+                    <button id="btn-player-skip" class="btn btn-secondary" style="flex:1;">Passer ⏭</button>
+                </div>
+            </div>
+
+            <!-- Global Progress tracker -->
+            <div class="progress-bar-wrap">
+                <div class="progress-bar-bg">
+                    <div id="player-overall-progress" class="progress-bar-fill"></div>
+                </div>
+                <div id="player-progress-text" class="progress-text">Progression globale : 0%</div>
+            </div>
+        </main>
+
+        <!-- ==========================================
+             SCREEN: EDITOR
+             ========================================== -->
+        <main id="screen-editor" class="hidden animate-fade-in">
+            <header>
+                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
+                    <button id="btn-editor-back" class="btn-icon">⬅️</button>
+                    <h2 style="margin:0;">Configuration de Séance</h2>
+                    <button id="btn-reset-exercises" class="btn-icon" title="Restaurer par défaut">🔄</button>
+                </div>
+                <p>Modifiez l'ordre, ajoutez ou supprimez des exercices.</p>
+            </header>
+
+            <button id="btn-add-exercise" class="btn btn-primary" style="margin-bottom:20px;">➕ Ajouter un exercice</button>
+
+            <div id="editor-exercises-list" class="editor-list-container">
+                <!-- Exercises items rendered dynamically -->
+            </div>
+        </main>
+
+        <!-- ==========================================
+             MODAL: EXERCISE FORM
+             ========================================== -->
+        <div id="modal-exercise" class="modal-overlay hidden">
+            <div class="modal-content animate-fade-in">
+                <h3 id="modal-title">Ajouter un exercice</h3>
+                <form id="form-exercise">
+                    <div class="form-group">
+                        <label for="in-name">Nom du mouvement</label>
+                        <input id="in-name" type="text" placeholder="Ex: Soulever l'eau" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="in-duration">Durée (secondes)</label>
+                        <input id="in-duration" type="number" min="10" max="600" value="60" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="in-desc">Instructions / Description</label>
+                        <textarea id="in-desc" rows="3" placeholder="Description fluide du geste respiratoire..." required></textarea>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="in-posture">Consigne de sécurité posture</label>
+                        <input id="in-posture" type="text" placeholder="Ex: Garder les épaules basses, préserver le dos." required>
+                    </div>
+
+                    <div class="modal-buttons">
+                        <button type="button" id="btn-modal-cancel" class="btn btn-secondary" style="margin:0; min-height:48px;">Annuler</button>
+                        <button type="submit" class="btn btn-primary" style="min-height:48px;">Enregistrer</button>
+                    </div>
+                </form>
+            </div>
+        </div>
+
+    </div>
+
+    <!-- Scripts -->
+    <script src="js/sounds.js"></script>
+    <script src="js/app.js"></script>
+    
+    <!-- Service Worker registration -->
+    <script>
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker enregistré avec succès.', reg.scope))
+                    .catch(err => console.error('Erreur d\'enregistrement du Service Worker:', err));
+            });
+        }
+    </script>
+</body>
+</html>

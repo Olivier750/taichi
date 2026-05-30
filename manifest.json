@@ -1,0 +1,23 @@
+{
+  "name": "Tai Chi Zen Matin",
+  "short_name": "TaiChiZen",
+  "description": "Routine matinale de renforcement et d'équilibre de Tai Chi pour seniors",
+  "start_url": "index.html",
+  "display": "standalone",
+  "background_color": "#0b132b",
+  "theme_color": "#00a86b",
+  "orientation": "portrait",
+  "icons": [
+    {
+      "src": "images/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any maskable"
+    },
+    {
+      "src": "images/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
