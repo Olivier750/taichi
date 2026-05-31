@@ -21,55 +21,69 @@ const DEFAULT_STANDING = [
 ];
 
 // App State
-let exercises = {
-    seated: [],
-    standing: []
-};
-let currentMode = 'seated'; // 'seated' or 'standing'
+let exercises = { seated: [], standing: [] };
 let activeExercisesList = [];
+let currentMode = 'seated'; // 'seated' or 'standing'
 let currentIndex = 0;
 let isPlaying = false;
 let isRestPhase = false;
 let timerSeconds = 0;
-let restDuration = 30; // Default rest duration in seconds
+let restDuration = 30; // seconds
 let intervalId = null;
 let useSpeech = true;
 let useGong = true;
 
-// DOM Elements
-const homeScreen = document.getElementById('screen-home');
-const playerScreen = document.getElementById('screen-player');
-const editorScreen = document.getElementById('screen-editor');
+// Onboarding Quiz State
+let quizAnswers = { activity: '', goal: '', posture: '' };
 
-// Initialize App
+// Habit Tracker State
+let dailyWater = 0;
+let completedHistory = []; // array of date strings 'YYYY-MM-DD'
+let userStreak = 0;
+
+// Onboarding & Initial Load
 function initApp() {
-    loadExercises();
+    loadAppState();
     setupEventListeners();
-    updateHomeUI();
+    checkOnboarding();
+    switchTab('today');
 }
 
-// Load from LocalStorage or default
-function loadExercises() {
-    const stored = localStorage.getItem('taichi_exercises_v1');
-    if (stored) {
-        try {
-            exercises = JSON.parse(stored);
-        } catch (e) {
-            console.error("Error parsing stored exercises, using defaults", e);
-            resetToDefaults();
-        }
+function loadAppState() {
+    // Exercises
+    const storedEx = localStorage.getItem('taichi_exercises_v2');
+    if (storedEx) {
+        try { exercises = JSON.parse(storedEx); } catch (e) { resetToDefaults(); }
     } else {
         resetToDefaults();
     }
+
+    // Quiz / Onboarding Check
+    const storedQuiz = localStorage.getItem('taichi_quiz_answers');
+    if (storedQuiz) {
+        quizAnswers = JSON.parse(storedQuiz);
+        currentMode = quizAnswers.posture || 'seated';
+    }
+
+    // Audio & Settings
+    const speech = localStorage.getItem('taichi_setting_speech');
+    if (speech !== null) useSpeech = speech === 'true';
+    const gong = localStorage.getItem('taichi_setting_gong');
+    if (gong !== null) useGong = gong === 'true';
+    const rest = localStorage.getItem('taichi_setting_rest');
+    if (rest !== null) restDuration = parseInt(rest, 10);
+
+    // Habits & Streaks
+    const water = localStorage.getItem('taichi_daily_water_' + getTodayDateString());
+    if (water !== null) dailyWater = parseInt(water, 10);
+    else dailyWater = 0;
+
+    const history = localStorage.getItem('taichi_completed_history');
+    if (history) {
+        try { completedHistory = JSON.parse(history); } catch (e) { completedHistory = []; }
+    }
     
-    // Load setting options
-    const speechSetting = localStorage.getItem('taichi_setting_speech');
-    if (speechSetting !== null) useSpeech = speechSetting === 'true';
-    const gongSetting = localStorage.getItem('taichi_setting_gong');
-    if (gongSetting !== null) useGong = gongSetting === 'true';
-    
-    const storedRest = localStorage.getItem('taichi_setting_rest');
-    if (storedRest !== null) restDuration = parseInt(storedRest, 10);
+    calculateStreak();
 }
 
 function resetToDefaults() {
@@ -79,122 +93,94 @@ function resetToDefaults() {
 }
 
 function saveExercises() {
-    localStorage.setItem('taichi_exercises_v1', JSON.stringify(exercises));
+    localStorage.setItem('taichi_exercises_v2', JSON.stringify(exercises));
 }
 
-// Event Listeners
-function setupEventListeners() {
-    // Mode toggles
-    document.getElementById('btn-mode-seated').addEventListener('click', () => setMode('seated'));
-    document.getElementById('btn-mode-standing').addEventListener('click', () => setMode('standing'));
+function checkOnboarding() {
+    if (!quizAnswers.posture) {
+        document.getElementById('screen-quiz').classList.remove('hidden');
+        document.getElementById('main-app-content').classList.add('hidden');
+    } else {
+        document.getElementById('screen-quiz').classList.add('hidden');
+        document.getElementById('main-app-content').classList.remove('hidden');
+        updateAllTabViews();
+    }
+}
 
-    // Main actions
-    document.getElementById('btn-start-workout').addEventListener('click', startWorkout);
-    document.getElementById('btn-manage-exercises').addEventListener('click', openEditor);
-    
-    // Editor controls
-    document.getElementById('btn-editor-back').addEventListener('click', closeEditor);
-    document.getElementById('btn-add-exercise').addEventListener('click', () => openExerciseModal());
-    document.getElementById('btn-reset-exercises').addEventListener('click', () => {
-        if(confirm("Voulez-vous vraiment restaurer les exercices d'origine ? Toutes vos modifications seront perdues.")) {
-            resetToDefaults();
-            renderEditorList();
-            updateHomeUI();
+// Onboarding Quiz selection
+window.selectQuizOption = function(stepName, value) {
+    quizAnswers[stepName] = value;
+    localStorage.setItem('taichi_quiz_answers', JSON.stringify(quizAnswers));
+
+    if (stepName === 'activity') {
+        document.getElementById('quiz-step-1').classList.add('hidden');
+        document.getElementById('quiz-step-2').classList.remove('hidden');
+    } else if (stepName === 'goal') {
+        document.getElementById('quiz-step-2').classList.add('hidden');
+        document.getElementById('quiz-step-3').classList.remove('hidden');
+    } else if (stepName === 'posture') {
+        document.getElementById('quiz-step-3').classList.add('hidden');
+        currentMode = value;
+        
+        // Auto customize initial times based on beginner setting
+        if (quizAnswers.activity === 'beginner') {
+            // slightly shorter starting times for beginners
+            exercises.seated.forEach(ex => ex.duration = Math.max(30, ex.duration - 10));
+            exercises.standing.forEach(ex => ex.duration = Math.max(30, ex.duration - 10));
+            saveExercises();
         }
-    });
+        
+        checkOnboarding();
+    }
+};
 
-    // Player controls
-    document.getElementById('btn-player-play').addEventListener('click', togglePlay);
-    document.getElementById('btn-player-skip').addEventListener('click', skipStep);
-    document.getElementById('btn-player-back').addEventListener('click', stopWorkout);
+// Main layout navigation
+function switchTab(tabId) {
+    document.querySelectorAll('.tab-content').forEach(el => el.classList.add('hidden'));
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
 
-    // Audio switches
-    const switchSpeech = document.getElementById('switch-speech');
-    switchSpeech.checked = useSpeech;
-    switchSpeech.addEventListener('change', (e) => {
-        useSpeech = e.target.checked;
-        localStorage.setItem('taichi_setting_speech', useSpeech);
-    });
-
-    const switchGong = document.getElementById('switch-gong');
-    switchGong.checked = useGong;
-    switchGong.addEventListener('change', (e) => {
-        useGong = e.target.checked;
-        localStorage.setItem('taichi_setting_gong', useGong);
-    });
-
-    // Rest duration adjuster
-    const btnRestMinus = document.getElementById('btn-rest-minus');
-    const btnRestPlus = document.getElementById('btn-rest-plus');
-    const labelRestValue = document.getElementById('lbl-rest-value');
-    
-    labelRestValue.textContent = restDuration + "s";
-    btnRestMinus.addEventListener('click', () => {
-        if (restDuration > 10) {
-            restDuration -= 5;
-            labelRestValue.textContent = restDuration + "s";
-            localStorage.setItem('taichi_setting_rest', restDuration);
-            updateHomeUI();
-        }
-    });
-    btnRestPlus.addEventListener('click', () => {
-        if (restDuration < 60) {
-            restDuration += 5;
-            labelRestValue.textContent = restDuration + "s";
-            localStorage.setItem('taichi_setting_rest', restDuration);
-            updateHomeUI();
-        }
-    });
-
-    // Modal submit
-    document.getElementById('form-exercise').addEventListener('submit', saveExerciseModal);
-    document.getElementById('btn-modal-cancel').addEventListener('click', closeExerciseModal);
+    if (tabId === 'today') {
+        document.getElementById('tab-today').classList.remove('hidden');
+        document.getElementById('nav-btn-today').classList.add('active');
+        updateTodayTab();
+    } else if (tabId === 'programs') {
+        document.getElementById('tab-programs').classList.remove('hidden');
+        document.getElementById('nav-btn-programs').classList.add('active');
+        updateProgramsTab();
+    } else if (tabId === 'profile') {
+        document.getElementById('tab-profile').classList.remove('hidden');
+        document.getElementById('nav-btn-profile').classList.add('active');
+        updateProfileTab();
+    }
 }
 
-// UI State Toggles
-function setMode(mode) {
-    currentMode = mode;
-    document.getElementById('btn-mode-seated').classList.toggle('active', mode === 'seated');
-    document.getElementById('btn-mode-standing').classList.toggle('active', mode === 'standing');
-    updateHomeUI();
+function updateAllTabViews() {
+    updateTodayTab();
+    updateProgramsTab();
+    updateProfileTab();
 }
 
-function calculateTotalDuration(list) {
-    const totalSeconds = list.reduce((sum, item) => sum + item.duration, 0) + (list.length - 1) * restDuration;
-    return totalSeconds;
-}
-
-function formatTime(seconds) {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m} min ${s > 0 ? s + ' s' : ''}`;
-}
-
-function updateHomeUI() {
+// TAB 1: TODAY (Aujourd'hui)
+function updateTodayTab() {
     activeExercisesList = exercises[currentMode];
     const totalSecs = calculateTotalDuration(activeExercisesList);
     
-    // Display total time
-    document.getElementById('lbl-total-time').textContent = formatTime(totalSecs);
-    
-    const warningEl = document.getElementById('warning-time-limit');
-    if (totalSecs > 15 * 60) {
-        warningEl.classList.remove('hidden');
-        warningEl.textContent = "Attention : La séance dépasse 15 minutes (" + formatTime(totalSecs) + "). Désactivez ou réduisez certains exercices pour garder un rythme court.";
-    } else {
-        warningEl.classList.add('hidden');
-    }
+    document.getElementById('lbl-header-streak').textContent = `🔥 ${userStreak} jours`;
+    document.getElementById('lbl-today-subtitle').textContent = currentMode === 'seated' ? 'Routine Assise (Chaise)' : 'Routine Debout';
+    document.getElementById('lbl-today-duration').textContent = formatTime(totalSecs);
+    document.getElementById('lbl-today-count').textContent = activeExercisesList.length + ' formes';
+    document.getElementById('lbl-water-count').textContent = dailyWater;
 
-    // Display summary list
+    // Display summary list under start button
     const listContainer = document.getElementById('home-exercise-list');
     listContainer.innerHTML = '';
     
     if (activeExercisesList.length === 0) {
-        listContainer.innerHTML = '<p class="empty-msg">Aucun exercice actif. Ajoutez-en ou réinitialisez la liste.</p>';
-        document.getElementById('btn-start-workout').disabled = true;
+        listContainer.innerHTML = '<p class="empty-msg">Aucun exercice configuré. Veuillez les réinitialiser dans l\'onglet Programmes.</p>';
+        document.getElementById('btn-start-today').disabled = true;
         return;
     }
-    document.getElementById('btn-start-workout').disabled = false;
+    document.getElementById('btn-start-today').disabled = false;
 
     activeExercisesList.forEach((ex, idx) => {
         const item = document.createElement('div');
@@ -208,44 +194,257 @@ function updateHomeUI() {
         `;
         listContainer.appendChild(item);
     });
+
+    // Handle session duration warnings
+    const warningEl = document.getElementById('warning-today-time-limit');
+    if (totalSecs > 15 * 60) {
+        warningEl.classList.remove('hidden');
+        warningEl.textContent = "Attention : La séance dépasse 15 minutes (" + formatTime(totalSecs) + "). Vous pouvez raccourcir la durée des exercices dans l'onglet Programmes.";
+    } else {
+        warningEl.classList.add('hidden');
+    }
 }
 
-// Speak text using SpeechSynthesis
+// TAB 2: PROGRAMS (Configuration)
+function updateProgramsTab() {
+    document.getElementById('btn-prog-seated').classList.toggle('active', currentMode === 'seated');
+    document.getElementById('btn-prog-standing').classList.toggle('active', currentMode === 'standing');
+
+    const labelRestValue = document.getElementById('lbl-prog-rest-value');
+    labelRestValue.textContent = restDuration + "s";
+
+    document.getElementById('switch-prog-speech').checked = useSpeech;
+    document.getElementById('switch-prog-gong').checked = useGong;
+}
+
+// TAB 3: PROFILE & STATS
+function updateProfileTab() {
+    document.getElementById('lbl-profile-streak').textContent = userStreak;
+    document.getElementById('lbl-profile-total').textContent = completedHistory.length;
+    
+    // Level Badge description
+    const levelNameEl = document.getElementById('lbl-profile-level-name');
+    const levelAdaptationEl = document.getElementById('lbl-profile-adaptation');
+    
+    if (completedHistory.length >= 20) {
+        levelNameEl.textContent = "Maître Zen ☯";
+        levelAdaptationEl.textContent = "Progression personnalisée stable.";
+    } else if (completedHistory.length >= 8) {
+        levelNameEl.textContent = "Intermédiaire";
+        levelAdaptationEl.textContent = "Formes ajustées en fonction de l'évaluation.";
+    } else {
+        levelNameEl.textContent = "Pratiquant Débutant";
+        levelAdaptationEl.textContent = "Ajustements automatiques de la durée active.";
+    }
+
+    // Render calendar grid for past 7 days
+    const calendarGrid = document.getElementById('calendar-days-grid');
+    calendarGrid.innerHTML = '';
+    
+    const dayNames = ['Dim', 'Lun', 'Mar', 'Mer', 'Jeu', 'Ven', 'Sam'];
+    const now = new Date();
+
+    for (let i = 6; i >= 0; i--) {
+        const d = new Date();
+        d.setDate(now.getDate() - i);
+        const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+        const isCompleted = completedHistory.includes(dateStr);
+        const dayLabel = dayNames[d.getDay()];
+
+        const cell = document.createElement('div');
+        cell.className = 'calendar-day-cell' + (isCompleted ? ' completed' : '');
+        cell.innerHTML = `
+            <span class="day-name">${dayLabel}</span>
+            <strong>${d.getDate()}</strong>
+            <span style="font-size: 0.6rem;">${isCompleted ? '✓' : ''}</span>
+        `;
+        calendarGrid.appendChild(cell);
+    }
+}
+
+// Event Listeners setup
+function setupEventListeners() {
+    // Bottom Nav buttons
+    document.getElementById('nav-btn-today').addEventListener('click', () => switchTab('today'));
+    document.getElementById('nav-btn-programs').addEventListener('click', () => switchTab('programs'));
+    document.getElementById('nav-btn-profile').addEventListener('click', () => switchTab('profile'));
+
+    // Today tab actions
+    document.getElementById('btn-start-today').addEventListener('click', startWorkout);
+    document.getElementById('btn-add-water').addEventListener('click', addWaterIntake);
+    document.getElementById('btn-start-breathing').addEventListener('click', startBreathingGame);
+
+    // Programs tab toggles & settings
+    document.getElementById('btn-prog-seated').addEventListener('click', () => { currentMode = 'seated'; updateProgramsTab(); updateTodayTab(); });
+    document.getElementById('btn-prog-standing').addEventListener('click', () => { currentMode = 'standing'; updateProgramsTab(); updateTodayTab(); });
+    
+    document.getElementById('btn-prog-rest-minus').addEventListener('click', () => adjustRestTime(-5));
+    document.getElementById('btn-prog-rest-plus').addEventListener('click', () => adjustRestTime(5));
+
+    document.getElementById('switch-prog-speech').addEventListener('change', (e) => {
+        useSpeech = e.target.checked;
+        localStorage.setItem('taichi_setting_speech', useSpeech);
+    });
+    document.getElementById('switch-prog-gong').addEventListener('change', (e) => {
+        useGong = e.target.checked;
+        localStorage.setItem('taichi_setting_gong', useGong);
+    });
+
+    document.getElementById('btn-prog-manage-exercises').addEventListener('click', openEditor);
+    document.getElementById('btn-prog-reset').addEventListener('click', () => {
+        if(confirm("Réinitialiser les listes d'exercices d'origine ?")) {
+            resetToDefaults();
+            updateAllTabViews();
+            alert("Routines restaurées !");
+        }
+    });
+
+    // Profile actions
+    document.getElementById('btn-reset-quiz').addEventListener('click', () => {
+        if (confirm("Voulez-vous réinitialiser vos paramètres et refaire le questionnaire ?")) {
+            localStorage.removeItem('taichi_quiz_answers');
+            quizAnswers = { activity: '', goal: '', posture: '' };
+            checkOnboarding();
+        }
+    });
+
+    // Player action events
+    document.getElementById('btn-player-play').addEventListener('click', togglePlay);
+    document.getElementById('btn-player-skip').addEventListener('click', skipStep);
+    document.getElementById('btn-player-back').addEventListener('click', stopWorkout);
+
+    // Cardiac coherence game back button
+    document.getElementById('btn-breath-back').addEventListener('click', stopBreathingGame);
+
+    // Modal overlay events
+    document.getElementById('form-exercise').addEventListener('submit', saveExerciseModal);
+    document.getElementById('btn-modal-cancel').addEventListener('click', closeExerciseModal);
+    
+    // Editor back buttons
+    document.getElementById('btn-editor-back').addEventListener('click', closeEditor);
+    document.getElementById('btn-add-exercise').addEventListener('click', () => openExerciseModal());
+    document.getElementById('btn-reset-exercises').addEventListener('click', () => {
+        if(confirm("Voulez-vous restaurer les listes d'origine ?")) {
+            resetToDefaults();
+            renderEditorList();
+            updateAllTabViews();
+        }
+    });
+}
+
+function adjustRestTime(value) {
+    if (restDuration + value >= 10 && restDuration + value <= 90) {
+        restDuration += value;
+        document.getElementById('lbl-prog-rest-value').textContent = restDuration + "s";
+        localStorage.setItem('taichi_setting_rest', restDuration);
+        updateTodayTab();
+    }
+}
+
+// Habit Trackers: Hydration
+function addWaterIntake() {
+    dailyWater++;
+    localStorage.setItem('taichi_daily_water_' + getTodayDateString(), dailyWater);
+    document.getElementById('lbl-water-count').textContent = dailyWater;
+}
+
+// Habit Trackers: Cardiac Coherence
+let breathingInterval = null;
+let breathingGameSeconds = 120;
+let breathingCycleState = 'in'; // 'in' or 'out'
+
+function startBreathingGame() {
+    document.getElementById('main-app-content').classList.add('hidden');
+    document.getElementById('screen-breathing-game').classList.remove('hidden');
+    
+    breathingGameSeconds = 120;
+    breathingCycleState = 'in';
+    
+    const circle = document.getElementById('breath-game-circle');
+    const instruction = document.getElementById('breath-game-instruction');
+    const timerLabel = document.getElementById('breath-game-timer');
+
+    circle.className = "breathe-game-circle breathe-in";
+    instruction.textContent = "Inspirez lentement...";
+    timerLabel.textContent = "2:00";
+    
+    if (useSpeech) speak("Démarrage de la cohérence cardiaque. Inspirez pendant 5 secondes.");
+
+    let cycleCounter = 0;
+    clearInterval(breathingInterval);
+    breathingInterval = setInterval(() => {
+        breathingGameSeconds--;
+        cycleCounter++;
+
+        // 5s Inhale, 5s Exhale loop
+        if (cycleCounter >= 5) {
+            cycleCounter = 0;
+            if (breathingCycleState === 'in') {
+                breathingCycleState = 'out';
+                circle.className = "breathe-game-circle breathe-out";
+                instruction.textContent = "Expirez lentement...";
+                if (useSpeech) speak("Expirez.");
+            } else {
+                breathingCycleState = 'in';
+                circle.className = "breathe-game-circle breathe-in";
+                instruction.textContent = "Inspirez profondément...";
+                if (useSpeech) speak("Inspirez.");
+            }
+        }
+
+        // Format and show remaining time
+        const m = Math.floor(breathingGameSeconds / 60);
+        const s = breathingGameSeconds % 60;
+        timerLabel.textContent = `${m}:${s < 10 ? '0' : ''}${s}`;
+
+        if (breathingGameSeconds <= 0) {
+            clearInterval(breathingInterval);
+            if (useSpeech) speak("Cohérence cardiaque complétée. Bien joué.");
+            stopBreathingGame();
+        }
+    }, 1000);
+}
+
+function stopBreathingGame() {
+    clearInterval(breathingInterval);
+    document.getElementById('main-app-content').classList.remove('hidden');
+    document.getElementById('screen-breathing-game').classList.add('hidden');
+    window.speechSynthesis.cancel();
+}
+
+// Workout Player Logic
 function speak(text) {
     if (!useSpeech) return;
-    window.speechSynthesis.cancel(); // Stop current speech
+    window.speechSynthesis.cancel();
     const utterance = new SpeechSynthesisUtterance(text);
     utterance.lang = 'fr-FR';
-    utterance.rate = 0.9; // Slightly slower for clear instruction
+    utterance.rate = 0.85; // comforting, slow paced
     window.speechSynthesis.speak(utterance);
 }
 
-// Workout Player Engine
 function startWorkout() {
+    activeExercisesList = exercises[currentMode];
     if (activeExercisesList.length === 0) return;
-    
-    // Request Wake Lock if supported to keep screen alive
+
     if ('wakeLock' in navigator) {
-        navigator.wakeLock.request('screen').catch(err => console.log('wakeLock error', err));
+        navigator.wakeLock.request('screen').catch(() => {});
     }
 
     currentIndex = 0;
     isRestPhase = false;
     timerSeconds = activeExercisesList[currentIndex].duration;
     isPlaying = true;
-    
-    homeScreen.classList.add('hidden');
-    playerScreen.classList.remove('hidden');
-    
+
+    document.getElementById('main-app-content').classList.add('hidden');
+    document.getElementById('screen-player').classList.remove('hidden');
+
     document.getElementById('btn-player-play').innerHTML = '<span>⏸</span> Pause';
-
-    updatePlayerUI();
     
-    // Play initial gong and announce
-    if (useGong) window.zenSounds.playGong();
-    speak("Démarrage de la séance. Premier mouvement : " + activeExercisesList[currentIndex].name + ". Préparez-vous.");
+    updatePlayerUI();
 
-    // Start timer interval
+    if (useGong) window.zenSounds.playGong();
+    speak("Début de séance. Exercice 1 : " + activeExercisesList[currentIndex].name + ". C'est parti.");
+
     clearInterval(intervalId);
     intervalId = setInterval(tick, 1000);
 }
@@ -253,9 +452,10 @@ function startWorkout() {
 function stopWorkout() {
     clearInterval(intervalId);
     isPlaying = false;
-    homeScreen.classList.remove('hidden');
-    playerScreen.classList.add('hidden');
+    document.getElementById('main-app-content').classList.remove('hidden');
+    document.getElementById('screen-player').classList.add('hidden');
     window.speechSynthesis.cancel();
+    updateTodayTab();
 }
 
 function togglePlay() {
@@ -263,12 +463,10 @@ function togglePlay() {
     const btn = document.getElementById('btn-player-play');
     if (isPlaying) {
         btn.innerHTML = '<span>⏸</span> Pause';
-        btn.classList.remove('paused');
         intervalId = setInterval(tick, 1000);
         speak("Reprise");
     } else {
         btn.innerHTML = '<span>▶</span> Reprendre';
-        btn.classList.add('paused');
         clearInterval(intervalId);
         speak("Pause");
     }
@@ -276,57 +474,44 @@ function togglePlay() {
 
 function tick() {
     if (!isPlaying) return;
-
     timerSeconds--;
-    
+
     if (timerSeconds <= 0) {
         if (!isRestPhase) {
-            // Finished exercise, move to rest or end
+            // Exercise ended
             if (currentIndex < activeExercisesList.length - 1) {
                 isRestPhase = true;
                 timerSeconds = restDuration;
                 if (useGong) window.zenSounds.playBowl();
                 const nextEx = activeExercisesList[currentIndex + 1].name;
-                speak("Mouvement terminé. Relâchez. Prochain exercice dans " + restDuration + " secondes : " + nextEx);
+                speak("Mouvement complété. Relâchez et respirez. Suivant : " + nextEx);
             } else {
-                // Workout complete
-                clearInterval(intervalId);
-                isRestPhase = false;
-                isPlaying = false;
-                if (useGong) window.zenSounds.playGong();
-                speak("Félicitations, votre séance matinale de Tai Chi est terminée. Passez une excellente journée en pleine forme.");
-                showFinishedScreen();
-                return;
+                // Workout completed!
+                finishWorkout();
             }
         } else {
-            // Finished rest phase, move to next exercise
+            // Rest ended
             currentIndex++;
             isRestPhase = false;
             timerSeconds = activeExercisesList[currentIndex].duration;
             if (useGong) window.zenSounds.playGong();
-            speak("Mouvement : " + activeExercisesList[currentIndex].name + ". C'est parti.");
+            speak("Début du mouvement : " + activeExercisesList[currentIndex].name);
         }
     }
-    
     updatePlayerUI();
 }
 
 function skipStep() {
     if (!isRestPhase) {
-        // Skip current exercise to rest
         if (currentIndex < activeExercisesList.length - 1) {
             isRestPhase = true;
             timerSeconds = restDuration;
             if (useGong) window.zenSounds.playBowl();
-            const nextEx = activeExercisesList[currentIndex + 1].name;
-            speak("Mouvement passé. Repos. Prochain exercice : " + nextEx);
+            speak("Mouvement passé. Repos. Suivant : " + activeExercisesList[currentIndex + 1].name);
         } else {
-            // End workout
-            timerSeconds = 0;
-            tick();
+            finishWorkout();
         }
     } else {
-        // Skip rest to next exercise
         isRestPhase = false;
         currentIndex++;
         timerSeconds = activeExercisesList[currentIndex].duration;
@@ -338,7 +523,6 @@ function skipStep() {
 
 function updatePlayerUI() {
     const ex = activeExercisesList[currentIndex];
-    
     const titleEl = document.getElementById('player-exercise-title');
     const phaseEl = document.getElementById('player-phase-name');
     const descEl = document.getElementById('player-exercise-desc');
@@ -349,22 +533,19 @@ function updatePlayerUI() {
     const progressTextEl = document.getElementById('player-progress-text');
     const breathingGuide = document.getElementById('breathing-guide');
 
-    // Breathing instruction & breathing animation control
     if (isRestPhase) {
         phaseEl.textContent = "PAUSE RESPIRATOIRE";
         phaseEl.className = "phase-badge rest";
         titleEl.textContent = "Respirer & Relâcher";
-        descEl.textContent = "Détendez les bras, gardez le dos droit et inspirez profondément par le nez, expirez lentement par la bouche.";
-        postureEl.textContent = "Posture : Corps détendu, épaules basses.";
+        descEl.textContent = "Relâchez vos bras et prenez des inspirations calmes.";
+        postureEl.textContent = "Posture : Assis bien droit ou debout, épaules détendues.";
         
-        // Dynamic next preview
         const nextEx = activeExercisesList[currentIndex + 1];
         nextPreviewEl.textContent = "Suivant : " + nextEx.name;
         nextPreviewEl.classList.remove('hidden');
         
-        // Breathe rate for rest is slightly slower
         breathingGuide.className = "breathing-circle breathing-active-slow";
-        document.getElementById('breathing-txt').textContent = "Calmer le souffle";
+        document.getElementById('breathing-txt').textContent = "Souffle calme";
     } else {
         phaseEl.textContent = `EXERCICE ${currentIndex + 1} / ${activeExercisesList.length}`;
         phaseEl.className = "phase-badge active-workout";
@@ -373,7 +554,6 @@ function updatePlayerUI() {
         postureEl.textContent = "Attention : " + ex.posture;
         nextPreviewEl.classList.add('hidden');
         
-        // Active exercise breathing speed
         breathingGuide.className = "breathing-circle breathing-active-normal";
         document.getElementById('breathing-txt').textContent = "Suivre le rythme";
     }
@@ -383,62 +563,148 @@ function updatePlayerUI() {
     const sec = timerSeconds % 60;
     timerValueEl.textContent = `${min}:${sec < 10 ? '0' : ''}${sec}`;
 
-    // Circular progress
+    // Circular countdown percentage progress
     const maxTime = isRestPhase ? restDuration : ex.duration;
     const progressPercent = ((maxTime - timerSeconds) / maxTime) * 100;
-    // Stroke-dasharray for svg circle is 565.48 (2 * PI * 90)
     const dashOffset = 565.48 - (565.48 * progressPercent) / 100;
     circleProgress.style.strokeDashoffset = dashOffset;
 
     // Overall session progress bar
     const overallProgress = document.getElementById('player-overall-progress');
-    const totalSteps = activeExercisesList.length * 2 - 1; // including rests
+    const totalSteps = activeExercisesList.length * 2 - 1;
     const currentStep = currentIndex * 2 + (isRestPhase ? 1 : 0);
     const progressWidth = (currentStep / totalSteps) * 100;
     overallProgress.style.width = `${progressWidth}%`;
     progressTextEl.textContent = `Progression globale : ${Math.round(progressWidth)}%`;
 }
 
-function showFinishedScreen() {
+function finishWorkout() {
     clearInterval(intervalId);
+    isPlaying = false;
     
-    const container = document.getElementById('player-workout-container');
-    const oldHTML = container.innerHTML;
+    // Save completion to history
+    const dateStr = getTodayDateString();
+    if (!completedHistory.includes(dateStr)) {
+        completedHistory.push(dateStr);
+        localStorage.setItem('taichi_completed_history', JSON.stringify(completedHistory));
+    }
     
-    container.innerHTML = `
-        <div class="finished-view animate-fade-in">
-            <div class="finished-badge">☯</div>
-            <h2>Routine Terminée !</h2>
-            <p>Excellent travail. Vous venez de fortifier votre corps et de calmer votre esprit pour la journée.</p>
-            <div class="finished-summary">
-                <div><strong>Routine :</strong> ${currentMode === 'seated' ? 'Assise (Chaise)' : 'Debout'}</div>
-                <div><strong>Temps pratiqué :</strong> ${formatTime(calculateTotalDuration(activeExercisesList))}</div>
-            </div>
-            <button id="btn-finished-close" class="btn btn-primary btn-large">Retour à l'accueil</button>
-        </div>
-    `;
+    calculateStreak();
 
-    document.getElementById('btn-finished-close').addEventListener('click', () => {
-        container.innerHTML = oldHTML; // restore template
-        // rebind buttons
-        document.getElementById('btn-player-play').addEventListener('click', togglePlay);
-        document.getElementById('btn-player-skip').addEventListener('click', skipStep);
-        document.getElementById('btn-player-back').addEventListener('click', stopWorkout);
-        stopWorkout();
-    });
+    // Show Feedback evaluation (MadMuscles style)
+    document.getElementById('screen-player').classList.add('hidden');
+    document.getElementById('screen-feedback').classList.remove('hidden');
+
+    if (useGong) window.zenSounds.playGong();
+    speak("Séance matinale complétée. Bravo à vous. Veuillez évaluer la séance pour adapter la difficulté.");
 }
 
-// Workout Editor UI
+// Adaptive progression algorithm (MadMuscles)
+window.submitAdaptation = function(rating) {
+    const list = exercises[currentMode];
+    let adjusted = false;
+
+    if (rating === 'easy') {
+        // Increase time by 10 seconds
+        list.forEach(ex => { ex.duration += 10; });
+        adjusted = true;
+        speak("Très bien. Vos exercices seront rallongés de 10 secondes pour progresser.");
+    } else if (rating === 'hard') {
+        // Decrease time by 10 seconds (minimum 30s)
+        list.forEach(ex => { ex.duration = Math.max(30, ex.duration - 10); });
+        adjusted = true;
+        speak("Reçu. Les exercices seront écourtés de 10 secondes pour préserver vos articulations.");
+    } else {
+        speak("Parfait. Nous gardons cette intensité pour demain.");
+    }
+
+    if (adjusted) {
+        saveExercises();
+    }
+    
+    skipAdaptationFeedback();
+};
+
+window.skipAdaptationFeedback = function() {
+    document.getElementById('screen-feedback').classList.add('hidden');
+    document.getElementById('main-app-content').classList.remove('hidden');
+    switchTab('today');
+    updateAllTabViews();
+};
+
+// Helpers for calculations
+function calculateTotalDuration(list) {
+    if (list.length === 0) return 0;
+    return list.reduce((sum, item) => sum + item.duration, 0) + (list.length - 1) * restDuration;
+}
+
+function formatTime(seconds) {
+    const m = Math.floor(seconds / 60);
+    const s = seconds % 60;
+    return `${m} min ${s > 0 ? s + ' s' : ''}`;
+}
+
+function getTodayDateString() {
+    const d = new Date();
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function getYesterdayDateString() {
+    const d = new Date();
+    d.setDate(d.getDate() - 1);
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+}
+
+function calculateStreak() {
+    const today = getTodayDateString();
+    const yesterday = getYesterdayDateString();
+
+    if (completedHistory.includes(today)) {
+        // Find consecutive previous days
+        let count = 1;
+        let d = new Date();
+        while (true) {
+            d.setDate(d.getDate() - 1);
+            const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            if (completedHistory.includes(dateStr)) {
+                count++;
+            } else {
+                break;
+            }
+        }
+        userStreak = count;
+    } else if (completedHistory.includes(yesterday)) {
+        let count = 0;
+        let d = new Date();
+        d.setDate(d.getDate() - 1); // start from yesterday
+        while (true) {
+            const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+            if (completedHistory.includes(dateStr)) {
+                count++;
+                d.setDate(d.getDate() - 1);
+            } else {
+                break;
+            }
+        }
+        userStreak = count;
+    } else {
+        userStreak = 0;
+    }
+}
+
+// Workout editor CRUD views
+const editorScreen = document.getElementById('screen-editor');
+
 function openEditor() {
-    homeScreen.classList.add('hidden');
+    document.getElementById('main-app-content').classList.add('hidden');
     editorScreen.classList.remove('hidden');
     renderEditorList();
 }
 
 function closeEditor() {
-    homeScreen.classList.remove('hidden');
+    document.getElementById('main-app-content').classList.remove('hidden');
     editorScreen.classList.add('hidden');
-    updateHomeUI();
+    updateAllTabViews();
 }
 
 function renderEditorList() {
@@ -447,7 +713,7 @@ function renderEditorList() {
     container.innerHTML = '';
 
     if (list.length === 0) {
-        container.innerHTML = '<p class="empty-msg">Aucun exercice pour cette routine. Cliquez sur Ajouter.</p>';
+        container.innerHTML = '<p class="empty-msg">Aucun exercice actif. Cliquez sur "Ajouter" pour en créer un.</p>';
         return;
     }
 
@@ -457,7 +723,7 @@ function renderEditorList() {
         item.innerHTML = `
             <div class="ex-info">
                 <h4>${ex.name} (${ex.duration}s)</h4>
-                <p>${ex.desc.substring(0, 70)}${ex.desc.length > 70 ? '...' : ''}</p>
+                <p>${ex.desc.substring(0, 80)}${ex.desc.length > 80 ? '...' : ''}</p>
             </div>
             <div class="ex-actions">
                 <button class="btn-icon btn-edit" title="Modifier" onclick="editExerciseItem('${ex.id}')">✏️</button>
@@ -472,7 +738,7 @@ function renderEditorList() {
     });
 }
 
-// Edit & Delete Window exports
+// Edit actions export
 window.editExerciseItem = function(id) {
     const list = exercises[currentMode];
     const ex = list.find(item => item.id === id);
@@ -482,7 +748,7 @@ window.editExerciseItem = function(id) {
 };
 
 window.deleteExerciseItem = function(id) {
-    if (confirm("Supprimer cet exercice de la routine ?")) {
+    if (confirm("Voulez-vous supprimer cet exercice ?")) {
         const list = exercises[currentMode];
         exercises[currentMode] = list.filter(item => item.id !== id);
         saveExercises();
@@ -498,7 +764,7 @@ window.moveExerciseItem = function(id, direction) {
     const newIdx = idx + direction;
     if (newIdx < 0 || newIdx >= list.length) return;
     
-    // Swap items
+    // Swap elements
     const temp = list[idx];
     list[idx] = list[newIdx];
     list[newIdx] = temp;
@@ -507,13 +773,12 @@ window.moveExerciseItem = function(id, direction) {
     renderEditorList();
 };
 
-// Exercise Modal Add / Edit
+// Exercise Dialog controls
 let editingId = null;
 
 function openExerciseModal(ex = null) {
     const modal = document.getElementById('modal-exercise');
     const title = document.getElementById('modal-title');
-    
     modal.classList.remove('hidden');
     
     if (ex) {
@@ -546,14 +811,13 @@ function saveExerciseModal(e) {
     const posture = document.getElementById('in-posture').value.trim();
     
     if (!name || isNaN(duration) || duration <= 0) {
-        alert("Veuillez renseigner un nom et une durée valide.");
+        alert("Saisie incorrecte.");
         return;
     }
     
     const list = exercises[currentMode];
     
     if (editingId) {
-        // Edit mode
         const idx = list.findIndex(item => item.id === editingId);
         if (idx !== -1) {
             list[idx].name = name;
@@ -562,15 +826,13 @@ function saveExerciseModal(e) {
             list[idx].posture = posture;
         }
     } else {
-        // Add mode
-        const newEx = {
+        list.push({
             id: 'custom_' + Date.now(),
             name,
             duration,
-            desc: desc || "Mouvement de Tai Chi personnalisé.",
-            posture: posture || "Gardez le dos aligné et respirez calmement."
-        };
-        list.push(newEx);
+            desc,
+            posture
+        });
     }
     
     saveExercises();

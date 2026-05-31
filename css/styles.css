@@ -8,6 +8,7 @@
     --primary: #00a86b; /* Jade Green */
     --primary-light: #00c853;
     --accent: #d4af37; /* Soft Gold */
+    --accent-light: #ffdf00;
     --text-main: #f4f6f9;
     --text-muted: #a5b1c2;
     --danger: #eb4d4b;
@@ -53,8 +54,7 @@ body {
 
 /* Header & Typography */
 header {
-    text-align: center;
-    padding: 12px 0 24px;
+    padding: 12px 0 20px;
 }
 
 h1 {
@@ -86,11 +86,65 @@ h2 {
 }
 
 p {
-    font-size: 1.1rem;
+    font-size: 1.05rem;
     color: var(--text-muted);
 }
 
-/* Form controls & Options card */
+/* Onboarding Quiz Styles */
+.quiz-container {
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: stretch;
+    flex: 1;
+    text-align: center;
+    padding: 20px 10px;
+}
+
+.quiz-step {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+    margin-top: 30px;
+}
+
+.quiz-options {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.quiz-opt-btn {
+    background-color: var(--bg-card);
+    border: 2px solid var(--border);
+    border-radius: 16px;
+    padding: 20px;
+    text-align: left;
+    color: var(--text-main);
+    cursor: pointer;
+    transition: all 0.2s ease;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+}
+
+.quiz-opt-btn strong {
+    font-size: 1.25rem;
+    color: var(--accent);
+}
+
+.quiz-opt-btn span {
+    font-size: 0.95rem;
+    color: var(--text-muted);
+}
+
+.quiz-opt-btn:active {
+    border-color: var(--primary);
+    background-color: rgba(0, 168, 107, 0.1);
+    transform: scale(0.98);
+}
+
+/* Cards & UI Panels */
 .card {
     background-color: var(--bg-card);
     border-radius: 16px;
@@ -100,12 +154,117 @@ p {
     box-shadow: 0 8px 24px rgba(0,0,0,0.2);
 }
 
-.card h3 {
-    font-size: 1.25rem;
+.card-hero {
+    background: linear-gradient(135deg, #1c2541 0%, #0d1326 100%);
+    border: 1.5px solid var(--primary);
+    position: relative;
+    overflow: hidden;
+}
+
+.card-hero::before {
+    content: "☯";
+    position: absolute;
+    right: -20px;
+    bottom: -20px;
+    font-size: 12rem;
+    color: rgba(0, 168, 107, 0.05);
+    pointer-events: none;
+}
+
+.hero-label {
+    font-size: 0.9rem;
+    color: var(--primary-light);
+    text-transform: uppercase;
+    font-weight: 700;
+    letter-spacing: 1px;
+}
+
+.stat-lbl {
+    font-size: 0.8rem;
+    color: var(--text-muted);
+    font-weight: bold;
+    letter-spacing: 0.5px;
+}
+
+.stat-val {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--text-main);
+}
+
+.streak-badge {
+    background-color: rgba(212, 175, 55, 0.15);
     color: var(--accent);
-    margin-bottom: 12px;
-    border-bottom: 1px solid var(--border);
-    padding-bottom: 8px;
+    font-weight: bold;
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 1rem;
+    border: 1px solid var(--accent);
+}
+
+/* Habit Tracker cards */
+.habit-container {
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+}
+
+.habit-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 14px;
+    padding: 16px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+}
+
+.habit-icon {
+    font-size: 1.8rem;
+    background-color: rgba(255,255,255,0.05);
+    width: 48px;
+    height: 48px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.habit-info {
+    flex: 1;
+}
+
+.habit-info h4 {
+    font-size: 1.1rem;
+    font-weight: bold;
+    margin-bottom: 2px;
+}
+
+.habit-info p {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.btn-habit-action {
+    background-color: var(--primary);
+    color: var(--bg-dark);
+    border: none;
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    font-size: 1.5rem;
+    font-weight: bold;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: transform 0.2s ease;
+}
+
+.btn-habit-action:active {
+    transform: scale(0.9);
+    background-color: var(--primary-light);
 }
 
 /* Big custom buttons for senior ergonomics */
@@ -126,6 +285,11 @@ p {
     letter-spacing: 0.5px;
 }
 
+.btn-large {
+    min-height: 64px;
+    border-radius: 32px;
+}
+
 .btn-primary {
     background-color: var(--primary);
     color: var(--bg-dark);
@@ -140,17 +304,11 @@ p {
     background-color: transparent;
     border: 2px solid var(--border);
     color: var(--text-main);
-    margin-top: 10px;
 }
 
 .btn-secondary:active {
     background-color: rgba(255,255,255,0.05);
     transform: scale(0.98);
-}
-
-.btn-danger {
-    background-color: var(--danger);
-    color: white;
 }
 
 /* Mode toggles */
@@ -282,43 +440,7 @@ input:checked + .slider:before {
     text-align: center;
 }
 
-/* Exercise Lists */
-.exercise-summary-card {
-    display: flex;
-    gap: 16px;
-    background-color: var(--bg-card);
-    padding: 14px;
-    border-radius: 12px;
-    margin-bottom: 10px;
-    border-left: 4px solid var(--accent);
-    align-items: center;
-}
-
-.ex-num {
-    background-color: rgba(212, 175, 55, 0.1);
-    color: var(--accent);
-    width: 36px;
-    height: 36px;
-    border-radius: 50%;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    font-weight: bold;
-    font-size: 1.1rem;
-    flex-shrink: 0;
-}
-
-.ex-details h3 {
-    font-size: 1.1rem;
-    font-weight: 600;
-    margin-bottom: 2px;
-}
-
-.ex-meta {
-    font-size: 0.9rem;
-    color: var(--text-muted);
-}
-
+/* Warning alert banner */
 .warning-banner {
     background-color: rgba(235, 77, 75, 0.15);
     border: 1px solid var(--danger);
@@ -330,7 +452,131 @@ input:checked + .slider:before {
     line-height: 1.4;
 }
 
-/* Player Screen */
+/* Bottom Navigation Bar (Glassmorphism PWA style) */
+.bottom-nav {
+    position: fixed;
+    bottom: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 100%;
+    max-width: 480px;
+    height: 70px;
+    background: rgba(28, 37, 65, 0.85);
+    backdrop-filter: blur(12px);
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    z-index: 900;
+}
+
+.nav-item {
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 4px;
+    cursor: pointer;
+    flex: 1;
+    height: 100%;
+    transition: all 0.2s ease;
+}
+
+.nav-icon {
+    font-size: 1.5rem;
+    line-height: 1;
+}
+
+.nav-label {
+    font-size: 0.8rem;
+    font-weight: 500;
+}
+
+.nav-item.active {
+    color: var(--primary-light);
+}
+
+.nav-item.active .nav-icon {
+    transform: scale(1.1);
+    color: var(--primary-light);
+}
+
+/* Profile / Progress Tab items */
+.stats-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+    margin-bottom: 20px;
+}
+
+.stat-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    padding: 16px;
+    text-align: center;
+}
+
+.stat-icon {
+    font-size: 2rem;
+    margin-bottom: 8px;
+    display: block;
+}
+
+.stat-num {
+    font-size: 2.2rem;
+    font-weight: bold;
+    color: var(--accent);
+}
+
+.stat-txt {
+    font-size: 0.9rem;
+    color: var(--text-muted);
+}
+
+.badge-level {
+    font-size: 3rem;
+    color: var(--accent);
+    animation: slow-spin 30s linear infinite;
+}
+
+/* Calendar completion grid */
+.calendar-grid {
+    display: grid;
+    grid-template-columns: repeat(7, 1fr);
+    gap: 8px;
+    margin-top: 10px;
+}
+
+.calendar-day-cell {
+    aspect-ratio: 1;
+    border-radius: 8px;
+    background-color: rgba(255,255,255,0.03);
+    border: 1px solid var(--border);
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    font-size: 0.8rem;
+}
+
+.calendar-day-cell.completed {
+    background-color: rgba(0, 168, 107, 0.15);
+    border-color: var(--primary);
+    color: var(--primary-light);
+    font-weight: bold;
+}
+
+.calendar-day-cell .day-name {
+    font-size: 0.65rem;
+    color: var(--text-muted);
+    text-transform: uppercase;
+}
+
+/* Player Screen Elements */
 .player-container {
     display: flex;
     flex-direction: column;
@@ -366,7 +612,7 @@ input:checked + .slider:before {
     position: relative;
     width: 220px;
     height: 220px;
-    margin: 20px 0;
+    margin: 15px 0;
 }
 
 .timer-circle-svg {
@@ -427,13 +673,20 @@ input:checked + .slider:before {
     display: inline-block;
 }
 
+.next-preview {
+    font-size: 1.05rem;
+    color: var(--accent);
+    font-weight: bold;
+    margin-top: 10px;
+}
+
 /* Breathing circle guide */
 .breathing-guide-wrap {
     display: flex;
     flex-direction: column;
     align-items: center;
     gap: 8px;
-    margin: 20px 0;
+    margin: 15px 0;
 }
 
 .breathing-circle {
@@ -445,6 +698,7 @@ input:checked + .slider:before {
     display: flex;
     align-items: center;
     justify-content: center;
+    font-size: 1.6rem;
 }
 
 .breathing-active-normal {
@@ -461,7 +715,7 @@ input:checked + .slider:before {
         background-color: rgba(0, 168, 107, 0.15);
     }
     50% {
-        transform: scale(1.4);
+        transform: scale(1.3);
         background-color: rgba(0, 168, 107, 0.4);
     }
 }
@@ -472,10 +726,48 @@ input:checked + .slider:before {
     font-weight: 500;
 }
 
+/* Cardiac coherence breath game circle */
+.breathe-game-circle {
+    width: 150px;
+    height: 150px;
+    border-radius: 50%;
+    background-color: rgba(0, 168, 107, 0.15);
+    border: 3px solid var(--primary);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 3rem;
+    margin-bottom: 30px;
+}
+
+.breathe-game-circle.breathe-in {
+    animation: gameBreatheIn 5s ease-in-out forwards;
+}
+
+.breathe-game-circle.breathe-out {
+    animation: gameBreatheOut 5s ease-in-out forwards;
+}
+
+@keyframes gameBreatheIn {
+    from { transform: scale(0.8); background-color: rgba(0, 168, 107, 0.15); }
+    to { transform: scale(1.5); background-color: rgba(0, 168, 107, 0.5); }
+}
+
+@keyframes gameBreatheOut {
+    from { transform: scale(1.5); background-color: rgba(0, 168, 107, 0.5); }
+    to { transform: scale(0.8); background-color: rgba(0, 168, 107, 0.15); }
+}
+
+.breath-game-instruction {
+    font-size: 1.8rem;
+    font-weight: bold;
+    color: var(--accent);
+}
+
 /* Progress Bar at the bottom */
 .progress-bar-wrap {
     width: 100%;
-    margin-bottom: 16px;
+    margin-bottom: 10px;
 }
 
 .progress-bar-bg {
@@ -629,11 +921,6 @@ input:checked + .slider:before {
 }
 
 /* Workout Finished View */
-.finished-view {
-    text-align: center;
-    padding: 40px 10px;
-}
-
 .finished-badge {
     font-size: 5rem;
     color: var(--accent);
@@ -642,26 +929,30 @@ input:checked + .slider:before {
     display: inline-block;
 }
 
-.finished-view h2 {
-    font-size: 2rem;
-    margin-bottom: 12px;
-}
-
-.finished-view p {
-    font-size: 1.15rem;
-    margin-bottom: 24px;
-}
-
-.finished-summary {
-    background-color: var(--bg-card);
-    border: 1px solid var(--border);
-    border-radius: 12px;
-    padding: 16px;
-    margin-bottom: 32px;
+/* Summary list items */
+.exercise-summary-card {
     display: flex;
-    flex-direction: column;
-    gap: 8px;
-    text-align: left;
+    gap: 16px;
+    background-color: var(--bg-card);
+    padding: 14px;
+    border-radius: 12px;
+    margin-bottom: 10px;
+    border-left: 4px solid var(--accent);
+    align-items: center;
+}
+
+.ex-num {
+    background-color: rgba(212, 175, 55, 0.1);
+    color: var(--accent);
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: bold;
+    font-size: 1.1rem;
+    flex-shrink: 0;
 }
 
 /* Animations */

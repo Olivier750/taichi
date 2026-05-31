@@ -25,82 +25,236 @@
     <div class="app-container">
         
         <!-- ==========================================
-             SCREEN: HOME
+             SCREEN: ONBOARDING QUIZ (First-time launch)
              ========================================== -->
-        <main id="screen-home" class="animate-fade-in">
+        <div id="screen-quiz" class="quiz-container animate-fade-in hidden">
             <header>
-                <h1><span class="yin-yang">☯</span> Tai Chi Zen</h1>
-                <p>Routine matinale de renforcement & équilibre</p>
+                <h1>☯ Tai Chi Zen</h1>
+                <p>Personnalisons votre routine matinale</p>
             </header>
-
-            <!-- Routine selection toggles -->
-            <div class="mode-selector">
-                <button id="btn-mode-seated" class="btn-mode active">🧘 Assis (Chaise)</button>
-                <button id="btn-mode-standing" class="btn-mode">🧍 Debout</button>
+            
+            <div id="quiz-step-1" class="quiz-step">
+                <h2>Étape 1 : Votre Profil</h2>
+                <p style="margin-bottom: 20px;">Indiquez votre niveau d'activité habituel pour adapter l'intensité.</p>
+                <div class="quiz-options">
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('activity', 'beginner')">
+                        <strong>Peu Actif / Débutant</strong>
+                        <span>Idéal pour reprendre une activité en douceur.</span>
+                    </button>
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('activity', 'active')">
+                        <strong>Actif / Intermédiaire</strong>
+                        <span>Pour entretenir la forme et le tonus musculaire.</span>
+                    </button>
+                </div>
             </div>
 
-            <!-- Workout summary & Start button -->
-            <div class="card">
-                <h3>Votre Séance du Matin</h3>
-                <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:12px;">
-                    <span style="font-size:1.15rem; font-weight:500;">Durée Totale estimée :</span>
-                    <span id="lbl-total-time" style="font-size:1.4rem; font-weight:bold; color:var(--accent);">0 min</span>
+            <div id="quiz-step-2" class="quiz-step hidden">
+                <h2>Étape 2 : Votre Objectif Principal</h2>
+                <p style="margin-bottom: 20px;">Quelle zone souhaitez-vous fortifier en priorité le matin ?</p>
+                <div class="quiz-options">
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('goal', 'strength')">
+                        <strong>💪 Renforcement musculaire doux</strong>
+                        <span>Muscles profonds, cuisses, dos et maintien.</span>
+                    </button>
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('goal', 'balance')">
+                        <strong>⚖️ Équilibre & Souplesse</strong>
+                        <span>Stabilité articulaire et prévention des chutes.</span>
+                    </button>
                 </div>
+            </div>
+
+            <div id="quiz-step-3" class="quiz-step hidden">
+                <h2>Étape 3 : Votre Confort Postural</h2>
+                <p style="margin-bottom: 20px;">Choisissez la posture de départ pour vos enchaînements.</p>
+                <div class="quiz-options">
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('posture', 'seated')">
+                        <strong>🧘 Pratique Assise (Recommandé)</strong>
+                        <span>Sur une chaise stable, aucun impact sur les genoux.</span>
+                    </button>
+                    <button class="quiz-opt-btn" onclick="selectQuizOption('posture', 'standing')">
+                        <strong>🧍 Pratique Debout</strong>
+                        <span>Travail d'ancrage complet et de posture classique.</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <!-- ==========================================
+             MAIN CONTAINER (With tabs navigation)
+             ========================================== -->
+        <div id="main-app-content" class="hidden" style="width:100%; display:flex; flex-direction:column; flex:1; padding-bottom: 75px;">
+            
+            <!-- TAB 1: TODAY (Aujourd'hui) -->
+            <main id="tab-today" class="tab-content animate-fade-in">
+                <header>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <span style="font-size: 0.9rem; color: var(--accent); font-weight: bold; text-transform: uppercase;">Aujourd'hui</span>
+                            <h1 style="justify-content: flex-start; gap: 6px; font-size: 1.8rem; margin:0;"><span class="yin-yang" style="font-size:1.8rem;">☯</span> Tai Chi Zen</h1>
+                        </div>
+                        <div id="lbl-header-streak" class="streak-badge">🔥 0 jours</div>
+                    </div>
+                </header>
+
+                <!-- Today's Routine Card -->
+                <div class="card card-hero">
+                    <div class="hero-label" id="lbl-today-subtitle">Routine Assise (Chaise)</div>
+                    <h2 id="lbl-today-title" style="margin: 4px 0 12px; font-size: 1.6rem; font-weight: 700;">Renforcement & Posture</h2>
+                    
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 20px;">
+                        <div>
+                            <div class="stat-lbl">DURÉE TOTAL</div>
+                            <div id="lbl-today-duration" class="stat-val">12 min</div>
+                        </div>
+                        <div>
+                            <div class="stat-lbl">MOUVEMENTS</div>
+                            <div id="lbl-today-count" class="stat-val">8 formes</div>
+                        </div>
+                    </div>
+
+                    <button id="btn-start-today" class="btn btn-primary btn-large">Démarrer ma routine</button>
+                </div>
+
+                <!-- Habits Tracker Widget -->
+                <h2 style="font-size:1.3rem; margin: 24px 0 12px; font-weight: 600;">Saines Habitudes Matinales</h2>
                 
-                <!-- Excessive duration warnings -->
-                <div id="warning-time-limit" class="warning-banner hidden"></div>
-
-                <button id="btn-start-workout" class="btn btn-primary">Démarrer la Séance</button>
-                <button id="btn-manage-exercises" class="btn btn-secondary">⚙️ Gérer les exercices</button>
-            </div>
-
-            <!-- Settings -->
-            <div class="card">
-                <h3>Options de Séance</h3>
-                
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Pause respiratoire</div>
-                        <div class="setting-desc">Temps entre chaque exercice</div>
+                <div class="habit-container">
+                    <!-- Habit 1: Hydration -->
+                    <div class="habit-card">
+                        <div class="habit-icon">💧</div>
+                        <div class="habit-info">
+                            <h4>Hydratation</h4>
+                            <p>Articulations lubrifiées : <strong id="lbl-water-count">0</strong> / 8 verres</p>
+                        </div>
+                        <button id="btn-add-water" class="btn-habit-action">+</button>
                     </div>
-                    <div class="adjuster">
-                        <button id="btn-rest-minus" class="btn-adjust">-</button>
-                        <span id="lbl-rest-value" class="adjust-val">30s</span>
-                        <button id="btn-rest-plus" class="btn-adjust">+</button>
+                    
+                    <!-- Habit 2: Deep Breathing -->
+                    <div class="habit-card">
+                        <div class="habit-icon">🫁</div>
+                        <div class="habit-info">
+                            <h4>Cohérence Cardiaque</h4>
+                            <p>Calmer l'anxiété : 2 min</p>
+                        </div>
+                        <button id="btn-start-breathing" class="btn-habit-action" style="font-size: 1rem; padding:0 12px;">Zen</button>
                     </div>
                 </div>
 
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Synthèse Vocale</div>
-                        <div class="setting-desc">Annonce parlée des mouvements</div>
-                    </div>
-                    <label class="switch">
-                        <input id="switch-speech" type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
+                <div id="warning-today-time-limit" class="warning-banner hidden" style="margin-top: 16px;"></div>
+            </main>
+
+            <!-- TAB 2: ROUTINES (Programmes) -->
+            <main id="tab-programs" class="tab-content hidden animate-fade-in">
+                <header>
+                    <h1 style="justify-content: flex-start;">Configuration & Routines</h1>
+                    <p>Sélectionnez et personnalisez vos entraînements.</p>
+                </header>
+
+                <div class="mode-selector">
+                    <button id="btn-prog-seated" class="btn-mode active">🧘 Routine Assise</button>
+                    <button id="btn-prog-standing" class="btn-mode">🧍 Routine Debout</button>
                 </div>
 
-                <div class="setting-row">
-                    <div>
-                        <div class="setting-label">Sons Zen</div>
-                        <div class="setting-desc">Bols tibétains de transition</div>
+                <div class="card">
+                    <h3>Ajuster les Minuteurs</h3>
+                    
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Pause respiratoire</div>
+                            <div class="setting-desc">Temps entre les exercices</div>
+                        </div>
+                        <div class="adjuster">
+                            <button id="btn-prog-rest-minus" class="btn-adjust">-</button>
+                            <span id="lbl-prog-rest-value" class="adjust-val">30s</span>
+                            <button id="btn-prog-rest-plus" class="btn-adjust">+</button>
+                        </div>
                     </div>
-                    <label class="switch">
-                        <input id="switch-gong" type="checkbox" checked>
-                        <span class="slider"></span>
-                    </label>
-                </div>
-            </div>
 
-            <!-- List review -->
-            <div style="margin-top:20px;">
-                <h2 style="font-size:1.3rem; margin-bottom:12px; border-bottom:1px solid var(--border); padding-bottom:8px;">Mouvements prévus</h2>
-                <div id="home-exercise-list">
-                    <!-- Dynamic Summary List -->
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Synthèse Vocale</div>
+                            <div class="setting-desc">Annonce parlée du mouvement</div>
+                        </div>
+                        <label class="switch">
+                            <input id="switch-prog-speech" type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+
+                    <div class="setting-row">
+                        <div>
+                            <div class="setting-label">Sons Zen</div>
+                            <div class="setting-desc">Bols tibétains de transition</div>
+                        </div>
+                        <label class="switch">
+                            <input id="switch-prog-gong" type="checkbox" checked>
+                            <span class="slider"></span>
+                        </label>
+                    </div>
                 </div>
-            </div>
-        </main>
+
+                <div style="display: flex; gap: 12px; margin-bottom: 20px;">
+                    <button id="btn-prog-manage-exercises" class="btn btn-primary" style="flex: 2; min-height: 50px;">🔧 Gérer les exercices</button>
+                    <button id="btn-prog-reset" class="btn btn-secondary" style="flex: 1; margin:0; min-height: 50px;" title="Réinitialiser">🔄 Ràz</button>
+                </div>
+            </main>
+
+            <!-- TAB 3: PROGRESS (Profil) -->
+            <main id="tab-profile" class="tab-content hidden animate-fade-in">
+                <header>
+                    <h1 style="justify-content: flex-start;">Mes Progrès & Profil</h1>
+                    <p>Votre assiduité et vos statistiques quotidiennes.</p>
+                </header>
+
+                <div class="stats-grid">
+                    <div class="stat-card">
+                        <span class="stat-icon">🔥</span>
+                        <div class="stat-num" id="lbl-profile-streak">0</div>
+                        <div class="stat-txt">Jours d'affilée</div>
+                    </div>
+                    <div class="stat-card">
+                        <span class="stat-icon">📅</span>
+                        <div class="stat-num" id="lbl-profile-total">0</div>
+                        <div class="stat-txt">Total Séances</div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Calendrier de Pratique</h3>
+                    <div id="calendar-days-grid" class="calendar-grid">
+                        <!-- Rendered by JS -->
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h3>Mon Niveau actuel</h3>
+                    <div style="display:flex; justify-content:space-between; align-items:center;">
+                        <div>
+                            <div style="font-size: 1.25rem; font-weight: bold;" id="lbl-profile-level-name">Débutant</div>
+                            <div style="font-size: 0.95rem; color:var(--text-muted);" id="lbl-profile-adaptation">Ajustements : Standard (60-80s)</div>
+                        </div>
+                        <div class="badge-level">☯</div>
+                    </div>
+                    <button id="btn-reset-quiz" class="btn btn-secondary" style="margin-top:20px; min-height:45px;">Recommencer le questionnaire</button>
+                </div>
+            </main>
+
+            <!-- BOTTOM NAVIGATION BAR -->
+            <nav class="bottom-nav">
+                <button id="nav-btn-today" class="nav-item active">
+                    <span class="nav-icon">☯</span>
+                    <span class="nav-label">Aujourd'hui</span>
+                </button>
+                <button id="nav-btn-programs" class="nav-item">
+                    <span class="nav-icon">⚙️</span>
+                    <span class="nav-label">Programmes</span>
+                </button>
+                <button id="nav-btn-profile" class="nav-item">
+                    <span class="nav-icon">📊</span>
+                    <span class="nav-label">Profil</span>
+                </button>
+            </nav>
+        </div>
 
         <!-- ==========================================
              SCREEN: PLAYER
@@ -110,7 +264,7 @@
                 <div style="display:flex; justify-content:space-between; align-items:center;">
                     <button id="btn-player-back" class="btn-icon" title="Quitter">🏠</button>
                     <div id="player-phase-name" class="phase-badge">EXERCICE 1 / 8</div>
-                    <div style="width:40px;"></div> <!-- balance layout -->
+                    <div style="width:40px;"></div>
                 </div>
             </header>
 
@@ -121,14 +275,14 @@
                         <circle class="timer-circle-bg" cx="110" cy="110" r="90" />
                         <circle id="player-circle-progress" class="timer-circle-progress" cx="110" cy="110" r="90" stroke-dasharray="565.48" stroke-dashoffset="0" />
                     </svg>
-                    <div id="player-timer-value" class="timer-value">1:20</div>
+                    <div id="player-timer-value" class="timer-value">1:00</div>
                 </div>
 
                 <!-- Guidance Info -->
                 <div class="player-info-card">
-                    <h2 id="player-exercise-title">Mouvement de Tai Chi</h2>
-                    <p id="player-exercise-desc" class="desc">Description détaillée de la posture et du geste fluide à faire.</p>
-                    <div id="player-exercise-posture" class="posture">Attention posture : Alignement et respiration lente.</div>
+                    <h2 id="player-exercise-title">Mouvement</h2>
+                    <p id="player-exercise-desc" class="desc">Description...</p>
+                    <div id="player-exercise-posture" class="posture">Consigne...</div>
                     <div id="player-next-preview" class="next-preview hidden">Suivant : ...</div>
                 </div>
 
@@ -155,7 +309,52 @@
         </main>
 
         <!-- ==========================================
-             SCREEN: EDITOR
+             SCREEN: WORKOUT COMPLETED & ADAPTIVE FEEDBACK
+             ========================================== -->
+        <main id="screen-feedback" class="hidden animate-fade-in" style="width:100%; text-align:center; padding: 30px 10px;">
+            <div class="finished-badge">☯</div>
+            <h2>Routine Terminée !</h2>
+            <p style="margin-bottom: 24px;">Excellent travail matinal. Comment avez-vous trouvé la séance aujourd'hui ?</p>
+            
+            <div class="quiz-options" style="margin-bottom:30px;">
+                <button class="quiz-opt-btn" onclick="submitAdaptation('easy')">
+                    <strong>😅 Trop Facile</strong>
+                    <span>Augmenter le temps des exercices de +10s pour travailler plus.</span>
+                </button>
+                <button class="quiz-opt-btn" onclick="submitAdaptation('perfect')">
+                    <strong>😊 Parfait</strong>
+                    <span>Garder cette intensité idéale pour mon corps.</span>
+                </button>
+                <button class="quiz-opt-btn" onclick="submitAdaptation('hard')">
+                    <strong>🥵 Trop Difficile / Fatiguant</strong>
+                    <span>Diminuer le temps de -10s pour soulager mes articulations.</span>
+                </button>
+            </div>
+            
+            <button onclick="skipAdaptationFeedback()" class="btn btn-secondary">Passer l'évaluation</button>
+        </main>
+
+        <!-- ==========================================
+             SCREEN: COHERENCE CARDIAQUE (Breathing game)
+             ========================================== -->
+        <main id="screen-breathing-game" class="hidden player-container animate-fade-in">
+            <header style="width:100%;">
+                <div style="display:flex; justify-content:space-between; align-items:center;">
+                    <button id="btn-breath-back" class="btn-icon">⬅️</button>
+                    <h2>Cohérence Cardiaque</h2>
+                    <div style="width:40px;"></div>
+                </div>
+            </header>
+
+            <div style="width:100%; display:flex; flex-direction:column; align-items:center; justify-content:center; flex:1;">
+                <div id="breath-game-circle" class="breathe-game-circle">🫁</div>
+                <div id="breath-game-instruction" class="breath-game-instruction">Préparez-vous</div>
+                <div id="breath-game-timer" style="font-size: 2rem; font-weight:bold; margin-top:20px;">2:00</div>
+            </div>
+        </main>
+
+        <!-- ==========================================
+             SCREEN: MANAGE EXERCISES (CRUD List editor)
              ========================================== -->
         <main id="screen-editor" class="hidden animate-fade-in">
             <header>
